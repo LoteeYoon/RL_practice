@@ -22,7 +22,7 @@ gamma = 0.99
 
 replay = []
 env = gym.make('CartPole-v0')
-
+#### 꼭 있어야함? #####
 for _ in range(100):
     obs = env.reset()
     done = False
@@ -34,33 +34,35 @@ for _ in range(100):
         replay.append((prev_obs, action, reward, done, obs))
 
 env.close()
-
+#### 꼭 있어야함? #####
 len(replay)
 
 class dqn(nn.Module):
     def __init__(self):
         super(dqn, self).__init__()
-
+        ### 개인적으로 Sequential 쓰는건 비추. 실제로 네트워크를 한단한단 따보기 어려움
         self.layers = nn.Sequential(
-            nn.Linear(self.ob_dim, 128),
+            nn.Linear(self.ob_dim, 128), ##??? self.ob_dim이 선언되지도 않았는데, 어디서 가져오는거임? 이거 에러 안남?
             nn.ReLU(),
             nn.Linear(128, 128),
             nn.ReLU(),
-            nn.Linear(128, self.action_dim)
+            nn.Linear(128, self.action_dim) ## self.action_dim도 어디서 가져옴? 에러 안남? Constructor에서 initialize로 안해주고 쓸수가 있나?
         )
-
+        ### 개인적으로 Sequential 쓰는건 비추. 실제로 네트워크를 한단한단 따보기 어려움
     def forward(self, x):
         return self.layers(x)
 
+#### 보통 선언은 method들 아래로 가면 좋음 C++ 생각해보면, 사용하는 변수는 메인안에서 선언해야하는 것과 같은 말임
 dqn_agent = dqn()
 dqn_target = dqn()
+#### 보통 선언은 method들 아래로 가면 좋음 C++ 생각해보면, 사용하는 변수는 메인안에서 선언해야하는 것과 같은 말임
 
 def target_update(dqn_main, dqn_target):
     dqn_target.load_state_dict(dqn_main.state_dict())
 
 iteration = 5000
 optimizer = optim.SGD(dqn_target.parameters(), lr = 1e-4)
-optimizer.zero_grad()
+optimizer.zero_grad() ### 여기서 굳이 이걸 해줄 필요가 있을까?
 q_values = []
 losses = []
 
@@ -73,17 +75,18 @@ for iter in range(iteration):
     r = torch.FloatTensor(np.array([i[2] for i in train_batch])).view([-1, 1])
     d = torch.BoolTensor(np.array([i[3] for i in train_batch])).view([-1, 1])
     s_2 = torch.FloatTensor(np.array([i[4] for i in train_batch]))
-
+    
     Q = torch.gather(dqn_agent.forward(s), 1, a)
  
     with torch.no_grad():
         y = r + gamma * torch.max(dqn_target.forward(s_2), dim=1, keepdim=True)[0]
-
+    
     loss = F.mse_loss(Q, y)
     losses.append(loss)
+    ### 여기에 optimizer.zero_grad() 가 와야함.
     loss.backward()
     optimizer.step()
-
+### 불필요한 if문이 중복되네. 그냥 같이 하면 좋을듯
     if iter % 100 == 0:
         target_update(dqn_agent, dqn_target)
 
@@ -97,4 +100,4 @@ for iter in range(iteration):
         plt.title('q-value')
         plt.plot(Q.detach().numpy())
         plt.show()
-
+### 불필요한 if문이 중복되네. 그냥 같이 하면 좋을듯
