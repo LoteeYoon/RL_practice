@@ -1,2 +1,2 @@
 # practice
-RL algorithms implementation
+Paper implementation
